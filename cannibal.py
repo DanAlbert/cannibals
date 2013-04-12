@@ -1,6 +1,9 @@
 from collections import deque
 import sys
 
+USAGE = ('usage: python cannibals.py START END MODE OUTPUT\n' +
+         'MODES: bfs, dfs, iddfs, astar')
+
 
 class StateFile(object):
     FORMAT = """<left missionaries>,<left cannibals>,<left boats>
@@ -125,6 +128,15 @@ class State(object):
         return str
 
 
+class BfsFringe(deque):
+    def pop(self):
+        return super(BfsFringe, self).popleft()
+
+
+class DfsFringe(list):
+    pass
+
+
 def solve(start_state, goal_state, mode):
     if mode == 'bfs':
         solve_bfs(start_state, goal_state)
@@ -137,12 +149,23 @@ def solve(start_state, goal_state, mode):
     else:
         raise ValueError('invalid mode: %s' % mode)
 
+
 def solve_bfs(start_state, goal_state):
-    visited = []
-    fringe = deque()
+    fringe = BfsFringe()
     fringe.append(start_state)
+    return graph_search(fringe, goal_state)
+
+
+def solve_dfs(start_state, goal_state):
+    fringe = DfsFringe()
+    fringe.append(start_state)
+    return graph_search(fringe, goal_state)
+
+
+def graph_search(fringe, goal_state):
+    visited = []
     while fringe:
-        node = fringe.popleft()
+        node = fringe.pop()
         print 'state:'
         print node
         if node == goal_state:
@@ -162,40 +185,14 @@ def solve_bfs(start_state, goal_state):
         fringe.extend(node.expand())
     return False
 
-def solve_dfs(start_state, goal_state):
-    visited = []
-    fringe = [start_state]
-    while fringe:
-        node = fringe.pop()
-        print 'state:'
-        print node
-        if node == goal_state:
-            print 'success'
-            print
-            return True
-        if node.fails():
-            print 'fails'
-            print
-            continue
-        if node in visited:
-            print 'visited'
-            print
-            continue
-        print
-        visited.append(node)
-        expanded = node.expand()
-        expanded.reverse()
-        fringe.extend(expanded)
-    return False
 
 def solve_iddfs(start_state, goal_state):
     raise NotImplementedError()
 
+
 def solve_astar(start_state, goal_state):
     raise NotImplementedError()
 
-USAGE = ('usage: python cannibals.py START END MODE OUTPUT\n' +
-         'MODES: bfs, dfs, iddfs, astar')
 
 def main():
     try:
