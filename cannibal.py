@@ -36,13 +36,14 @@ class StateFile(object):
 
 
 class State(object):
-    def __init__(self, lc, lm, lb, rc, rm, rb):
+    def __init__(self, lc, lm, lb, rc, rm, rb, previous=None):
         self.left_cannibals = lc
         self.left_missionaries = lm
         self.left_boats = lb
         self.right_cannibals = rc
         self.right_missionaries = rm
         self.right_boats = rb
+        self.previous = previous
 
     def fails(self):
         return ((self.left_cannibals > self.left_missionaries and
@@ -91,7 +92,8 @@ class State(object):
                 self.left_boats + 1,
                 self.right_cannibals - cannibals,
                 self.right_missionaries - missionaries,
-                self.right_boats - 1)
+                self.right_boats - 1,
+                previous=self)
 
     def move_right(self, missionaries=0, cannibals=0):
         if missionaries + cannibals > 2 or missionaries + cannibals < 1:
@@ -103,7 +105,8 @@ class State(object):
                 self.left_boats - 1,
                 self.right_cannibals + cannibals,
                 self.right_missionaries + missionaries,
-                self.right_boats + 1)
+                self.right_boats + 1,
+                previous=self)
 
     def __eq__(self, other):
         return (self.left_cannibals == other.left_cannibals and
@@ -124,7 +127,7 @@ class State(object):
         str += 'right bank:\n'
         str += 'missionaries: %d\n' % self.right_missionaries
         str += 'cannibals: %d\n' % self.right_cannibals
-        str += 'boats: %d\n' % self.right_boats
+        str += 'boats: %d' % self.right_boats
         return str
 
 
@@ -139,13 +142,13 @@ class DfsFringe(list):
 
 def solve(start_state, goal_state, mode):
     if mode == 'bfs':
-        solve_bfs(start_state, goal_state)
+        return solve_bfs(start_state, goal_state)
     elif mode == 'dfs':
-        solve_dfs(start_state, goal_state)
+        return solve_dfs(start_state, goal_state)
     elif mode == 'iddfs':
-        solve_iddfs(start_state, goal_state)
+        return solve_iddfs(start_state, goal_state)
     elif mode == 'astar':
-        solve_astar(start_state, goal_state)
+        return solve_astar(start_state, goal_state)
     else:
         raise ValueError('invalid mode: %s' % mode)
 
@@ -166,24 +169,15 @@ def graph_search(fringe, goal_state):
     visited = []
     while fringe:
         node = fringe.pop()
-        print 'state:'
-        print node
         if node == goal_state:
-            print 'success'
-            print
-            return True
+            return node
         if node.fails():
-            print 'fails'
-            print
             continue
         if node in visited:
-            print 'visited'
-            print
             continue
-        print
         visited.append(node)
         fringe.extend(node.expand())
-    return False
+    return None
 
 
 def solve_iddfs(start_state, goal_state):
@@ -206,14 +200,32 @@ def main():
     start_state = StateFile(start).state
     goal_state = StateFile(goal).state
 
+    print '-' * 80
     print 'start:'
+    print '-' * 80
     print start_state
-    print
+    print '-' * 80
     print 'goal:'
+    print '-' * 80
     print goal_state
+    print '-' * 80
 
     try:
-        solve(start_state, goal_state, mode)
+        solution = solve(start_state, goal_state, mode)
+        if solution:
+            solution_list = []
+            current = solution
+            while current:
+                solution_list.append(current)
+                current = current.previous
+            solution_list.reverse()
+
+            print 'Solution found, %d moves' % (len(solution_list) - 1)
+
+            print '-' * 80
+            for sol in solution_list:
+                print sol
+                print '-' * 80
     except NotImplementedError:
         sys.exit('%s is not yet implemented' % mode)
 
