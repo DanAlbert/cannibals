@@ -200,34 +200,36 @@ def main():
     start_state = StateFile(start).state
     goal_state = StateFile(goal).state
 
-    print '-' * 80
-    print 'start:'
-    print '-' * 80
-    print start_state
-    print '-' * 80
-    print 'goal:'
-    print '-' * 80
-    print goal_state
-    print '-' * 80
+    with open(out, 'w') as output:
+        print >> output, '-' * 80
+        print >> output, 'start:'
+        print >> output, '-' * 80
+        print >> output, start_state
+        print >> output, '-' * 80
+        print >> output, 'goal:'
+        print >> output, '-' * 80
+        print >> output, goal_state
+        print >> output, '-' * 80
 
-    try:
-        solution = solve(start_state, goal_state, mode)
-        if solution:
-            solution_list = []
-            current = solution
-            while current:
-                solution_list.append(current)
-                current = current.previous
-            solution_list.reverse()
+        try:
+            solution = solve(start_state, goal_state, mode)
+            if solution:
+                solution_list = []
+                current = solution
+                while current:
+                    solution_list.append(current)
+                    current = current.previous
+                solution_list.reverse()
 
-            print 'Solution found, %d moves' % (len(solution_list) - 1)
+                print >> output, ('Solution found, %d moves' % 
+                                  (len(solution_list) - 1))
 
-            print '-' * 80
-            for sol in solution_list:
-                print sol
-                print '-' * 80
-    except NotImplementedError:
-        sys.exit('%s is not yet implemented' % mode)
+                print >> output, '-' * 80
+                for sol in solution_list:
+                    print >> output, sol
+                    print >> output, '-' * 80
+        except NotImplementedError:
+            sys.exit('%s is not yet implemented' % mode)
 
 if __name__ == '__main__':
     main()
