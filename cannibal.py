@@ -207,8 +207,56 @@ def solve_iddfs(start_state, goal_state):
     return None
 
 
+def cost_estimate(node1, node2):
+    return 1
+
+
+def distance(node1, node2):
+    return 1
+
+
 def solve_astar(start_state, goal_state):
-    raise NotImplementedError()
+    visited = []
+    fringe = [start_state]
+
+    g_score = {}
+    f_score = {}
+
+    g_score[start_state] = 0
+    estimate = cost_estimate(start_state, goal_state)
+    f_score[start_state] = g_score[start_state] + estimate
+
+    while fringe:
+        current = fringe[0]
+        for node in fringe[1:]:
+            if f_score[node] < f_score[current]:
+                current = node
+
+        fringe.remove(current)
+        visited.append(current)
+
+        if current == goal_state:
+            return node
+
+        if current.fails():
+            continue
+
+        for node in current.expand():
+            try:
+                g_score[node]
+            except KeyError:
+                g_score[node] = float('inf')
+            tentative_g_score = g_score[current] + distance(current, node)
+            if node in visited:
+                if tentative_g_score >= g_score[node]:
+                    continue
+
+            if node not in fringe or tentative_g_score < g_score[node]:
+                g_score[node] = tentative_g_score
+                f_score[node] = g_score[node] + cost_estimate(node, goal_state)
+                if node not in fringe:
+                    fringe.append(node)
+    return None
 
 
 def main():
