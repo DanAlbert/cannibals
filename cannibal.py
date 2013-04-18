@@ -46,6 +46,7 @@ class State(object):
         self.right_missionaries = rm
         self.right_boats = rb
         self.previous = previous
+#        self.g_score = float('inf')
 
     def fails(self):
         return ((self.left_cannibals > self.left_missionaries and
@@ -217,23 +218,25 @@ def distance(node1, node2):
 
 def solve_astar(start_state, goal_state):
     visited = []
-    fringe = [start_state]
 
-    g_score = {}
-    f_score = {}
-
-    g_score[start_state] = 0
+    start_state.g_score = 0
     estimate = cost_estimate(start_state, goal_state)
-    f_score[start_state] = g_score[start_state] + estimate
+    start_state.f_score = start_state.g_score + estimate
+
+    fringe = [start_state]
 
     while fringe:
         current = fringe[0]
         for node in fringe[1:]:
-            if f_score[node] < f_score[current]:
+            if node.f_score < current.f_score:
                 current = node
 
         fringe.remove(current)
         visited.append(current)
+        print "visiting"
+        print '-' * 80
+        print current
+        print '-' * 80
 
         if current == goal_state:
             return node
@@ -242,18 +245,24 @@ def solve_astar(start_state, goal_state):
             continue
 
         for node in current.expand():
+            tentative_g_score = current.g_score + distance(current, node)
+
+            # the neighbor node might not have a g_score yet
+            # it will if it has already been visited, so pull that
+            # if not, generate a high number to compare against
             try:
-                g_score[node]
-            except KeyError:
-                g_score[node] = float('inf')
-            tentative_g_score = g_score[current] + distance(current, node)
+                node.g_score
+            except AttributeError:
+                node.g_score = next((x for x in visited if x == node),
+                                    [float('inf')])
+
             if node in visited:
-                if tentative_g_score >= g_score[node]:
+                if tentative_g_score >= node.g_score:
                     continue
 
-            if node not in fringe or tentative_g_score < g_score[node]:
-                g_score[node] = tentative_g_score
-                f_score[node] = g_score[node] + cost_estimate(node, goal_state)
+            if node not in fringe or tentative_g_score < node.g_score:
+                node.g_score = tentative_g_score
+                node.f_score = node.g_score + cost_estimate(node, goal_state)
                 if node not in fringe:
                     fringe.append(node)
     return None
