@@ -4,6 +4,8 @@ import sys
 USAGE = ('usage: python cannibals.py START END MODE OUTPUT\n' +
          'MODES: bfs, dfs, iddfs, astar')
 
+MAX_DEPTH = 20
+
 
 class StateFile(object):
     FORMAT = """<left missionaries>,<left cannibals>,<left boats>
@@ -181,7 +183,28 @@ def graph_search(fringe, goal_state):
 
 
 def solve_iddfs(start_state, goal_state):
-    raise NotImplementedError()
+    for depth_limit in range(0, MAX_DEPTH):
+        fringe = []
+        fringe.append(start_state)
+
+        depth = 0
+        visited = []
+        while fringe and depth <= depth_limit:
+            node = fringe.pop()
+            if node == goal_state:
+                return node
+            if node.fails():
+                continue
+            if node in visited:
+                continue
+            visited.append(node)
+            children = node.expand()
+            fringe.extend(children)
+            if children:
+                depth += 1
+            else:
+                depth -= 1
+    return None
 
 
 def solve_astar(start_state, goal_state):
@@ -200,7 +223,8 @@ def main():
     start_state = StateFile(start).state
     goal_state = StateFile(goal).state
 
-    with open(out, 'w') as output:
+    #with open(out, 'w') as output:
+    with sys.stdout as output:
         print >> output, '-' * 80
         print >> output, 'start:'
         print >> output, '-' * 80
