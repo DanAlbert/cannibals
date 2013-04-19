@@ -6,6 +6,8 @@ USAGE = ('usage: python cannibals.py START END MODE OUTPUT\n' +
 
 MAX_DEPTH = 1000
 
+INITIAL = 'left'
+
 
 class StateFile(object):
     FORMAT = """<left missionaries>,<left cannibals>,<left boats>
@@ -46,7 +48,14 @@ class State(object):
         self.right_missionaries = rm
         self.right_boats = rb
         self.previous = previous
-#        self.g_score = float('inf')
+
+    @property
+    def left(self):
+        return self.left_missionaries + self.left_cannibals
+
+    @property
+    def right(self):
+        return self.right_missionaries + self.right_cannibals
 
     def fails(self):
         return ((self.left_cannibals > self.left_missionaries and
@@ -140,14 +149,15 @@ class DfsFringe(list):
 
 def solve(start_state, goal_state, mode):
     solution = None
+    expanded = -1
     if mode == 'bfs':
-        solution = solve_bfs(start_state, goal_state)
+        solution, expanded = solve_bfs(start_state, goal_state)
     elif mode == 'dfs':
-        solution = solve_dfs(start_state, goal_state)
+        solution, expanded = solve_dfs(start_state, goal_state)
     elif mode == 'iddfs':
-        solution = solve_iddfs(start_state, goal_state)
+        solution, expanded = solve_iddfs(start_state, goal_state)
     elif mode == 'astar':
-        solution = solve_astar(start_state, goal_state)
+        solution, expanded = solve_astar(start_state, goal_state)
     else:
         raise ValueError('invalid mode: %s' % mode)
     if solution and mode != 'iddfs':
@@ -157,9 +167,9 @@ def solve(start_state, goal_state, mode):
             solution_list.append(current)
             current = current.previous
         solution_list.reverse()
-        return solution_list
+        return solution_list, expanded
     else:
-        return solution
+        return solution, expanded
 
 
 def solve_bfs(start_state, goal_state):
@@ -176,15 +186,17 @@ def solve_dfs(start_state, goal_state):
 
 def graph_search(fringe, goal_state):
     visited = []
+    expanded = 0
     while fringe:
         node = fringe.pop()
         if node == goal_state:
-            return node
+            return node, expanded
         if node.fails():
             continue
         if node in visited:
             continue
         visited.append(node)
+        expanded += 1
         fringe.extend(node.expand())
     return None
 
@@ -192,31 +204,37 @@ def graph_search(fringe, goal_state):
 def solve_iddfs(start_state, goal_state):
     for depth_limit in range(1, MAX_DEPTH):
         print "checking depth %d" % depth_limit
-        result = dls(start_state, goal_state, depth_limit)
+        result, expanded = dls(start_state, goal_state, depth_limit)
         if result:
-            return result
+            return result, expanded
     return None
 
 
 def dls(node, goal_state, depth):
+    expanded = 0
     if node == goal_state:
-        return [node]
+        return [node], expanded
     elif node.fails():
-        return None
+        return None, expanded
     elif depth > 0:
+        expanded += 1
         for child in node.expand():
-            result = dls(child, goal_state, depth - 1)
+            result, exp = dls(child, goal_state, depth - 1)
+            expanded += exp
             if result:
                 result.append(node)
-                return result
-        return None
+                return result, expanded
+        return None, expanded
     else:
-        return None
+        return None, expanded
 
 
 def cost_estimate(node1, node2):
-    right1 = node1.right_missionaries + node1.right_cannibals
-    return right1 - 1
+    global INITIAL
+    if INITIAL == 'left':
+        return node1.left - 1
+    else:
+        return node1.right - 1
 
 
 def distance(node1, node2):
@@ -224,6 +242,7 @@ def distance(node1, node2):
 
 
 def solve_astar(start_state, goal_state):
+    expanded = 0
     visited = []
 
     start_state.g_score = 0
@@ -240,17 +259,14 @@ def solve_astar(start_state, goal_state):
 
         fringe.remove(current)
         visited.append(current)
-        #print "visiting"
-        #print
-        #print current
-        #print
 
         if current == goal_state:
-            return node
+            return node, expanded
 
         if current.fails():
             continue
 
+        expanded += 1
         for node in current.expand():
             tentative_g_score = current.g_score + distance(current, node)
 
@@ -276,6 +292,7 @@ def solve_astar(start_state, goal_state):
 
 
 def main():
+    global INITIAL
     try:
         start, goal, mode, out = sys.argv[1:]
     except ValueError:
@@ -287,8 +304,13 @@ def main():
     start_state = StateFile(start).state
     goal_state = StateFile(goal).state
 
-    #with open(out, 'w') as output:
-    with sys.stdout as output:
+    if start_state.left > 0:
+        INITIAL = 'left'
+    else:
+        INITIAL = 'right'
+    print 'initial: %s' % INITIAL
+
+    with open(out, 'w') as output:
         print >> output, 'start:'
         print >> output, start_state
         print >> output
@@ -297,8 +319,9 @@ def main():
         print >> output
 
         try:
-            solution = solve(start_state, goal_state, mode)
+            solution, expanded = solve(start_state, goal_state, mode)
             if solution:
+                print >> output, 'Expanded %d nodes' % expanded
                 print >> output, ('Solution found, %d moves' % 
                                   (len(solution) - 1))
 
