@@ -4,7 +4,7 @@ import sys
 USAGE = ('usage: python cannibals.py START END MODE OUTPUT\n' +
          'MODES: bfs, dfs, iddfs, astar')
 
-MAX_DEPTH = 20
+MAX_DEPTH = 1000
 
 
 class StateFile(object):
@@ -120,18 +120,13 @@ class State(object):
                 self.right_boats == other.right_boats)
 
     def __str__(self):
-        # TODO: this is pretty awful... fix the string concatenation
-        str = ''
-        str += 'left bank:\n'
-        str += 'missionaries: %d\n' % self.left_missionaries
-        str += 'cannibals: %d\n' % self.left_cannibals
-        str += 'boats: %d\n' % self.left_boats
-        str += '\n'
-        str += 'right bank:\n'
-        str += 'missionaries: %d\n' % self.right_missionaries
-        str += 'cannibals: %d\n' % self.right_cannibals
-        str += 'boats: %d' % self.right_boats
-        return str
+        return '%d,%d,%d\n%d,%d,%d' % (
+                self.left_missionaries,
+                self.left_cannibals,
+                self.left_boats,
+                self.right_missionaries,
+                self.right_cannibals,
+                self.right_boats)
 
 
 class BfsFringe(deque):
@@ -184,23 +179,25 @@ def graph_search(fringe, goal_state):
 
 
 def solve_iddfs(start_state, goal_state):
-    for depth_limit in range(0, MAX_DEPTH):
-        result = dls(start_state, goal_state, depth_limit)
+    for depth_limit in range(1, MAX_DEPTH):
+        result = dls(start_state, goal_state, depth_limit, [])
         if result:
             return result
     return None
 
 
-def dls(node, goal_state, depth):
+def dls(node, goal_state, depth, visited):
     if node.fails():
         return None
     elif depth == 0 and node == goal_state:
         return node
     elif depth > 0:
+        visited.append(node)
         for child in node.expand():
-            result = dls(child, goal_state, depth - 1)
-            if result:
-                return result
+            if child not in visited:
+                result = dls(child, goal_state, depth - 1, visited)
+                if result:
+                    return result
         return None
     else:
         return None
@@ -233,9 +230,9 @@ def solve_astar(start_state, goal_state):
         fringe.remove(current)
         visited.append(current)
         print "visiting"
-        print '-' * 80
+        print
         print current
-        print '-' * 80
+        print
 
         if current == goal_state:
             return node
@@ -281,15 +278,12 @@ def main():
 
     #with open(out, 'w') as output:
     with sys.stdout as output:
-        print >> output, '-' * 80
         print >> output, 'start:'
-        print >> output, '-' * 80
         print >> output, start_state
-        print >> output, '-' * 80
+        print >> output
         print >> output, 'goal:'
-        print >> output, '-' * 80
         print >> output, goal_state
-        print >> output, '-' * 80
+        print >> output
 
         try:
             solution = solve(start_state, goal_state, mode)
@@ -304,10 +298,9 @@ def main():
                 print >> output, ('Solution found, %d moves' % 
                                   (len(solution_list) - 1))
 
-                print >> output, '-' * 80
                 for sol in solution_list:
                     print >> output, sol
-                    print >> output, '-' * 80
+                    print >> output
         except NotImplementedError:
             sys.exit('%s is not yet implemented' % mode)
 
