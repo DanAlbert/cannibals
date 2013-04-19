@@ -139,16 +139,27 @@ class DfsFringe(list):
 
 
 def solve(start_state, goal_state, mode):
+    solution = None
     if mode == 'bfs':
-        return solve_bfs(start_state, goal_state)
+        solution = solve_bfs(start_state, goal_state)
     elif mode == 'dfs':
-        return solve_dfs(start_state, goal_state)
+        solution = solve_dfs(start_state, goal_state)
     elif mode == 'iddfs':
-        return solve_iddfs(start_state, goal_state)
+        solution = solve_iddfs(start_state, goal_state)
     elif mode == 'astar':
-        return solve_astar(start_state, goal_state)
+        solution = solve_astar(start_state, goal_state)
     else:
         raise ValueError('invalid mode: %s' % mode)
+    if solution and mode != 'iddfs':
+        solution_list = []
+        current = solution
+        while current:
+            solution_list.append(current)
+            current = current.previous
+        solution_list.reverse()
+        return solution_list
+    else:
+        return solution
 
 
 def solve_bfs(start_state, goal_state):
@@ -180,24 +191,26 @@ def graph_search(fringe, goal_state):
 
 def solve_iddfs(start_state, goal_state):
     for depth_limit in range(1, MAX_DEPTH):
-        result = dls(start_state, goal_state, depth_limit, [])
+        result = dls(start_state, goal_state, depth_limit, {})
         if result:
             return result
     return None
 
 
 def dls(node, goal_state, depth, visited):
-    if node.fails():
+    if node == goal_state:
+        return [node]
+    elif node in visited and visited[node] <= depth:
         return None
-    elif depth == 0 and node == goal_state:
-        return node
+    elif node.fails():
+        return None
     elif depth > 0:
-        visited.append(node)
+        visited[node] = depth
         for child in node.expand():
-            if child not in visited:
-                result = dls(child, goal_state, depth - 1, visited)
-                if result:
-                    return result
+            result = dls(child, goal_state, depth - 1, visited)
+            if result:
+                result.append(node)
+                return result
         return None
     else:
         return None
@@ -288,17 +301,10 @@ def main():
         try:
             solution = solve(start_state, goal_state, mode)
             if solution:
-                solution_list = []
-                current = solution
-                while current:
-                    solution_list.append(current)
-                    current = current.previous
-                solution_list.reverse()
-
                 print >> output, ('Solution found, %d moves' % 
-                                  (len(solution_list) - 1))
+                                  (len(solution) - 1))
 
-                for sol in solution_list:
+                for sol in solution:
                     print >> output, sol
                     print >> output
         except NotImplementedError:
