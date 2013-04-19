@@ -215,7 +215,8 @@ def dls(node, goal_state, depth):
 
 
 def cost_estimate(node1, node2):
-    return 1
+    right1 = node1.right_missionaries + node1.right_cannibals
+    return right1 - 1
 
 
 def distance(node1, node2):
@@ -239,10 +240,10 @@ def solve_astar(start_state, goal_state):
 
         fringe.remove(current)
         visited.append(current)
-        print "visiting"
-        print
-        print current
-        print
+        #print "visiting"
+        #print
+        #print current
+        #print
 
         if current == goal_state:
             return node
