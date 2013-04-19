@@ -185,27 +185,26 @@ def graph_search(fringe, goal_state):
 
 def solve_iddfs(start_state, goal_state):
     for depth_limit in range(0, MAX_DEPTH):
-        fringe = []
-        fringe.append(start_state)
-
-        depth = 0
-        visited = []
-        while fringe and depth <= depth_limit:
-            node = fringe.pop()
-            if node == goal_state:
-                return node
-            if node.fails():
-                continue
-            if node in visited:
-                continue
-            visited.append(node)
-            children = node.expand()
-            fringe.extend(children)
-            if children:
-                depth += 1
-            else:
-                depth -= 1
+        result = dls(start_state, goal_state, depth_limit)
+        if result:
+            return result
     return None
+
+
+def dls(node, goal_state, depth):
+    if node.fails():
+        return None
+    elif depth == 0 and node == goal_state:
+        return node
+    elif depth > 0:
+        for child in node.expand():
+            result = dls(child, goal_state, depth - 1)
+            if result:
+                return result
+        return None
+    else:
+        return None
+    raise RuntimeError("shouldn't be here")
 
 
 def cost_estimate(node1, node2):
